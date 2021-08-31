@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:mob_admin_panel/classes/db_emp.dart';
+import 'package:mob_admin_panel/components/colors.dart';
 import 'package:mob_admin_panel/components/curvedbar.dart';
 
 import 'package:http/http.dart' as http;
 import 'dart:convert' as con;
 
 import 'package:mob_admin_panel/components/urlstring.dart';
+import 'package:mob_admin_panel/pageviews/demo/demoaddzone.dart';
+import 'package:mob_admin_panel/pageviews/mob/mob.dart';
 
 class HomeView extends StatefulWidget {
   final DB_Emp loginuser;
@@ -23,6 +26,33 @@ class _HomeViewState extends State<HomeView> {
 
   List<DB_Emp> emplist ;
   int mobquantity = 20;
+
+
+  Widget listviewemp(){
+    return ListView.builder(
+      shrinkWrap: true,
+      itemCount: emplist.length,
+      scrollDirection: Axis.vertical,
+      itemBuilder: (context, i) => Column(
+        children: [
+          ListTile(
+            leading: CircleAvatar(
+                child: Icon(Icons.person, color: Colors.white,),
+              backgroundColor: Colors.blue,
+            ),
+            //contentPadding: EdgeInsets.all(30),
+            title: Text(emplist[i].ename, style: TextStyle(fontSize: 25 ,fontWeight: FontWeight.bold, color: Colors.blue),),
+            subtitle:  Text(emplist[i].edesg, style: TextStyle(color: Colors.blue),),
+            trailing: emplist[i].eflag?
+            Text("Available", style: TextStyle(color: Colors.green),)
+                :
+            Text("Not Available", style: TextStyle(color: Colors.red),),
+          ),
+          Divider(color: Colors.blue, height: 15,)
+        ],
+      ),
+    );
+  }
 
   getemp() async {
     var res =await  http.get(Uri.parse(UrlString.url+'Employee/getall'));
@@ -69,49 +99,41 @@ class _HomeViewState extends State<HomeView> {
           )
         ),
         Divider(color: Colors.blue, height: 15,),
-        ListTile(
-          minLeadingWidth: double.infinity,
-          title: Text("Mob Quantity", style: TextStyle(color: Colors.blue),),
-          trailing: Text("$mobquantity", style: TextStyle(color: Colors.blue)),
-        ),
-        Padding(
-          padding: EdgeInsets.fromLTRB(120, 0, 50, 0),
-          child: Row(
-            children: [
-              IconButton(
-                icon: Icon(Icons.add),
-                color: Colors.blue,
-                onPressed: (){
-                  setState(() {
-                    mobquantity+=1;
-                  });
-                },
-              ),
-              IconButton(
-                icon: Icon(Icons.minimize),
-                color: Colors.blue,
-                onPressed: (){
-                  setState(() {
-                    mobquantity-=1;
-                  });
-                },
-              ),
-            ],
-          ),
-        ),
+        Padding(padding: EdgeInsets.only(left: 40),
+          child: Text(
+            "Employees",
+            style: TextStyle(color: Colors.blue, fontSize: 15),
+          ),),
         Divider(color: Colors.blue, height: 15,),
-        Padding(
-          padding: EdgeInsets.all(100),
+        Flexible(
           child: Container(
-            color: Colors.blue,
-            child: ElevatedButton(
-              child: Text("Show Employee", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),),
-              onPressed: ()=>Navigator.pushNamed(context, "emplist"),
-            ),
+            height: 360,
+            child: emplist==null?Center(child: CircularProgressIndicator(),):listviewemp(),
           ),
         ),
+        // Padding(
+        //   padding: EdgeInsets.all(100),
+        //   child: Container(
+        //     color: Colors.blue,
+        //     child: ElevatedButton(
+        //       child: Text("Show Employee", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),),
+        //       onPressed: ()=>Navigator.pushNamed(context, "emplist"),
+        //     ),
+        //   ),
+        // ),
       ],
     );
+  }
+
+  void handleClick(String value) {
+    switch (value) {
+      case 'Logout':
+        Navigator.of(context).pop();
+        break;
+      case 'DemoPage':
+        Navigator.push(context, MaterialPageRoute(builder: (context) => DemoAddZone(),));
+        break;
+    }
   }
 
   @override
@@ -129,12 +151,44 @@ class _HomeViewState extends State<HomeView> {
         leading: IconButton(
           icon: Icon(Icons.logout, color: Colors.white,),
           onPressed: (){
-            Navigator.pop(context);
+            Navigator.of(context).pop();
           },
-        )
+        ),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.refresh, color: Colors.white,size: 20,),
+            onPressed: ()=>getemp(),
+          ),
+          PopupMenuButton<String>(
+            onSelected: handleClick,
+            itemBuilder: (BuildContext context) {
+              return {'Logout', 'DemoPage'}.map((String choice) {
+                return PopupMenuItem<String>(
+                  value: choice,
+                  child: Text(choice),
+                );
+              }).toList();
+            },
+          ),
+        ],
       ),
       bottomNavigationBar: CurvedBar(),
       body: listview() ,
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          setState(() {
+            MyColors.myForeColor = Colors.blue;
+            MyColors.myBackColor = Colors.white;
+          });
+          Navigator.pushNamed(context, 'signup');
+        },
+        backgroundColor: Colors.blue,
+        child: Icon(
+          Icons.add,
+          color: Colors.white,
+          size: 30,
+        ) ,
+      ),
     );
   }
 }

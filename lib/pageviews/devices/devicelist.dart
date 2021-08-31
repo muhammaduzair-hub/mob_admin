@@ -19,12 +19,7 @@ class _DevicesListState extends State<DevicesList> {
 
 
   Widget listview(){
-    return deviceslist.length==0
-        ?
-    Center(child: Text(
-      "NO Devices",
-      style: TextStyle(color: Colors.blue, fontWeight: FontWeight.bold),
-    ),)
+    return deviceslist.length==0 ? Center(child: Text("NO Devices", style: TextStyle(color: Colors.blue, fontWeight: FontWeight.bold),),)
         :
     ListView.builder(
       itemCount: deviceslist.length,

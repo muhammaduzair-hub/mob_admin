@@ -1,3 +1,4 @@
+import 'dart:convert';
 class DB_ArielShot{
   final int pid;
   final String pname;
@@ -10,6 +11,9 @@ class DB_ArielShot{
   final int picno;
   final String speed;
 
+  //picture
+  var bytes;
+
   DB_ArielShot({
     this.pid,
     this.pname,
@@ -20,7 +24,8 @@ class DB_ArielShot{
     this.mid,
     this.pmobquantity,
     this.picno,
-    this.speed
+    this.speed,
+    this.bytes
   });
 
   factory DB_ArielShot.fromJson(Map<String, dynamic> json){
@@ -34,7 +39,9 @@ class DB_ArielShot{
         plongitude: json['Plongitude'],
         pmobquantity: json['pmobquantity'],
         pname: json['Pname'],
-        speed: json['pspeed']
+        speed: json['pspeed'],
+        //bytes: base64Decode(paddres)
+      // bytes: base64Decode(json['Paddress'])
     );
   }
 }

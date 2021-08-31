@@ -40,6 +40,7 @@ class MyApp extends StatelessWidget {
           navigateAfterSeconds: Login(),
         ),//HomeView(loginuser: DB_Emp(ename: "Uzair", email: "Uzairhere@admin", edesg: "Admin", epass: "abc123", eflag: true),),
       routes: {
+          'login':(context)=>Login(),
         'home' : (context)=>HomeView(loginuser: LoginPerson.loginuser),//DB_Emp(ename: "Uzair", email: "Uzairhere@admin", edesg: "Admin", epass: "abc123", eflag: true),),
         'emplist':(context)=>EmpList(),
         'signup':(context)=>Signup(),

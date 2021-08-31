@@ -18,19 +18,19 @@ class _CurvedBarState extends State<CurvedBar> {
   changePage(int index) {
     switch (index) {
       case 0:
-        Navigator.pop(context);
+        Navigator.of(context).pop();
         Navigator.pushNamed(context, 'home');
         break;
       case 1:
-        Navigator.pop(context);
+        Navigator.of(context).pop();
         Navigator.pushNamed(context, 'mob');
         break;
       case 2:
-        Navigator.pop(context);
+        Navigator.of(context).pop();
         Navigator.pushNamed(context, 'device');
         break;
       case 3:
-        Navigator.pop(context);
+        Navigator.of(context).pop();
         Navigator.pushNamed(context, 'zone');
         break;
       default:

@@ -1,12 +1,15 @@
 import 'dart:async';
+import 'dart:convert';
+import 'dart:math';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+
 import 'package:mob_admin_panel/classes/db_arielshot.dart';
 import 'package:mob_admin_panel/classes/db_mob.dart';
 import 'package:mob_admin_panel/classes/db_zone.dart';
+import 'package:mob_admin_panel/classes/db_zonedetail.dart';
 import 'package:mob_admin_panel/components/curvedbar.dart';
 
 import 'package:http/http.dart' as http;
@@ -29,6 +32,13 @@ class _MobDetailState extends State<MobDetail> {
   final DB_Mob selectedmob;
   _MobDetailState({this.selectedmob});
 
+  List<DB_ArielShot> myshotlist;
+  List<DB_Zone> zone;
+  int shotlistlenght=0;
+  int dispercent=100;
+  double hundredpert=1;
+  double currentmob=1;
+
   //======custom markers==========
   BitmapDescriptor startingmarker;
   BitmapDescriptor currentmarker;
@@ -36,47 +46,330 @@ class _MobDetailState extends State<MobDetail> {
   BitmapDescriptor redflag;
 
   int i =0;
-  List<DB_ArielShot> shotlist ;
-  List<DB_Zone> zone;
+
+//===============================================calculating distance between two points==================
+  String distance(double lat1, double lon1, double lat2, double lon2, String unit) {
+    double theta = lon1 - lon2;
+    double dist = sin(deg2rad(lat1)) * sin(deg2rad(lat2)) +
+        cos(deg2rad(lat1)) * cos(deg2rad(lat2)) * cos(deg2rad(theta));
+    dist = acos(dist);
+    dist = rad2deg(dist);
+    dist = dist * 60 * 1.1515;
+    if (unit == 'K') {
+      dist = dist * 1.609344;
+    } else if (unit == 'N') {
+      dist = dist * 0.8684;
+    }
+    return dist.toStringAsFixed(2);
+  }
+  double deg2rad(double deg) {
+    return (deg * pi / 180.0);
+  }
+  double rad2deg(double rad) {
+    return (rad * 180.0 / pi);
+  }
+//=================================================end calculating distance================================
+
+  onAddMarkerButtonPressed(double lat, double long, DateTime time, String speed,String id, String qty, BitmapDescriptor mark) {
+    setState(() {
+      // if (id == "1"){
+      //   hundredpert=double.parse(qty);
+      // }
+      // currentmob=double.parse(qty);
+      // double dispersal = (currentmob/hundredpert)*100;
+      // //MyToast.showToast('${dispersal}');
+      // if((dispersal<=dispercent.toDouble()+5 || dispersal<=dispercent.toDouble()-5) && dispersal>=dispercent.toDouble()-20.0) {
+      //   marker.add(Marker(
+      //       markerId: MarkerId(id),
+      //       position: LatLng(lat, long),
+      //       infoWindow: InfoWindow(
+      //         title: 'Qty:$qty, Dispersal:${100-dispersal}%, Remaining:${dispersal.toInt()}%',
+      //         snippet: 'Speed:${speed}, Time:${time}',
+      //       ),
+      //       icon: mark,
+      //       onTap: () {
+      //         for (int i = 0; i < myshotlist.length; i++) {
+      //           if (id == myshotlist[i].picno.toString()) {
+      //             setState(() {
+      //               bytes = base64Decode(myshotlist[i].paddres);
+      //             });
+      //           }
+      //         }
+      //       }
+      //   ));
+      //
+      //   setState(() {
+      //     dispercent -=20;
+      //   });
+      // }
+
+      if (id == "1"){hundredpert=double.parse(qty);}
+      currentmob=double.parse(qty);
+      double dispersal = (currentmob/hundredpert)*100;
+      marker.add(Marker(
+          markerId: MarkerId(id),
+          position: LatLng(lat, long),
+          infoWindow: InfoWindow(
+            title: 'Qty:$qty, Dispersal:${100-dispersal}%, Remaining:${dispersal.toInt()}%',
+            snippet: 'Speed:${speed}, Time:${time}',
+          ),
+          icon: mark,
+          onTap: () {
+            for (int i = 0; i < myshotlist.length; i++) {
+              if (id == myshotlist[i].picno.toString()) {
+                setState(() {
+                  bytes = base64Decode(myshotlist[i].paddres);
+                });
+              }
+            }
+          }
+      ));
+    });
+
+  }
 
   getshots() async{
+
+    var res1 = await http.get(Uri.parse(UrlString.url+'Zones/allzone'));
+    if(res1.statusCode == 200) {
+      setState(() {
+        Iterable list = con.json.decode(res1.body);
+        zone = (list.map((e) => DB_Zone.fromJson(e)).toList());
+      });
+    }
+
     int mid = selectedmob.mid;
     var res = await http.get(Uri.parse(UrlString.url+'picture/Getpicofmob?mid=$mid'));
     if(res.statusCode == 200) {
 
       setState(() {
         Iterable list = con.json.decode(res.body);
-        shotlist = list.map((e) => DB_ArielShot.fromJson(e)).toList();
+        myshotlist = list.map((e) => DB_ArielShot.fromJson(e)).toList();
+        print(myshotlist.length.toString());
       });
 
       int i = 0;
-      for( i; i<shotlist.length; i++) {
-        onAddMarkerButtonPressed(
-          shotlist[i].platitude,
-          shotlist[i].plongitude,
-          shotlist[i].pdatetime,
-          shotlist[i].speed,
-          shotlist[i].pname,
-          i==0?startingmarker: i==shotlist.length-1? currentmarker : blackmarker,
-        );
+      for(i ; i<myshotlist.length; i++) {
+        MyToast.showToast("$i");
+        //shotlistlenght+=1;
+        await Future.delayed(Duration(seconds: 2), () async {
+
+          onAddMarkerButtonPressed(
+              myshotlist[i].platitude,
+              myshotlist[i].plongitude,
+              myshotlist[i].pdatetime,
+              myshotlist[i].speed,
+              myshotlist[i].picno.toString(),
+              myshotlist[i].pmobquantity.toString(),
+              i==myshotlist.length-1?currentmarker: blackmarker
+          );
+
+          //get new sensitive zones
+           double lat = myshotlist[i].platitude, lon = myshotlist[i].plongitude;
+
+          setState(() {
+            position = CameraPosition(
+                bearing: 192.833,
+                target: LatLng(myshotlist[i].platitude, myshotlist[i].plongitude),
+                tilt: 59.440,
+                zoom: 11.0);
+            goToPositone1();
+          });
+
+              for(int j = 0; j<zone.length; j++) {
+             //   MyToast.showToast("${zone[j].zid.toString()},  ${myshotlist[i].mid}");
+             //   DB_ZoneDetail thiszonedetail;
+             //   var res = await http.get(Uri.parse(
+             //       UrlString.url + 'ZoneDetail/viewzonestatus?zid=${zone[j]
+             //           .zid}&mid=${myshotlist[i].mid}')
+             //   );
+             //   if (res.statusCode == 200) {
+             //     MyMarker(zone[j].zlong, zone[j].zlat, (zone[j].zid+100), CustomMarker.redflag, '${thiszonedetail.reachtime} minute', thiszonedetail.mstatus);
+             //     MyCircle(zone[j].zlong, zone[j].zlat, zone[j].km, (zone[j].zid+100).toString());
+             //   }
+             // }
+
+               print("zoneindex${zone[j].zname}");
+                 var dist = distance(myshotlist[i].platitude, myshotlist[i].plongitude,zone[j].zlat, zone[j].zlong, "K");
+               print("dist:${dist}");
+                 var speed = myshotlist[i].speed.split(' ');
+               print("speed:${speed}");
+
+               var time = (double.parse(dist)-zone[j].km.toDouble()) <= 0
+                     ? 0.toDouble():
+               double.parse(speed[0])==0?
+               (double.parse(dist)-zone[j].km.toDouble())/1
+                     :
+                 (double.parse(dist)-zone[j].km.toDouble())/double.parse(speed[0]);
+               print("time:${time}");
+                 String previous_status='';
+
+                 if(zone[j].isshow==null){
+                   setState(() {
+                     zone[j].isshow= false;
+                   });
+                 }
+                 //now check is this zone is already isshow then we will updates its information
+                 double pre_time=0;
+                 if(zone[j].isshow){
+                   if(time>zone[j].time){
+                     setState(() {
+                       zone[j].time=time;
+                       zone[j].status = "Away";
+                     });
+                   }
+                   else{
+                     setState(() {
+                       zone[j].time=time;
+                       zone[j].status = "Toward";
+                     });
+                   }
+
+                   Marker _marker = marker.firstWhere((c) => c.markerId.value == (zone[j].zid+100).toString() ,orElse: () => null);
+                   Circle _circle = circles.firstWhere((c) => c.circleId.value ==(zone[j].zid+100).toString() ,orElse: () => null);
+                   setState(() {
+                     marker.remove(_marker);
+                     circles.remove(_circle);
+                   });
+                 }
+
+                 //if zone is near to mob
+                 else if(double.parse(dist) <= (zone[j].km+3).toDouble()){
+                   previous_status = "Toward";
+
+                   setState(() {
+                     zone[j].isshow = true;
+                     zone[j].time = time.toDouble();
+                     zone[j].status = previous_status;
+                   });
+                 }
+
+                 if(zone[j].isshow){
+                   MyMarker(zone[j].zlong, zone[j].zlat, (zone[j].zid+100), CustomMarker.redflag, '${zone[j].time} minute', zone[j].status);
+                   MyCircle(zone[j].zlong, zone[j].zlat, zone[j].km, (zone[j].zid+100).toString());
+                 }
+               }
+
+        });
       }
 
-      double lat = shotlist[i-1].platitude, lon = shotlist[i-1].plongitude;
-      var res1 = await http.get(Uri.parse(UrlString.url+'picture/GetDistance?lat=$lat&lon=$lon'));
-      if(res1.statusCode == 200) {
+      thread();
+    }
+  }
+
+  thread() async {
+
+    while(true){
+      int a = myshotlist.length;
+      //get shots again
+      int mid = selectedmob.mid;
+      var res = await http.get(Uri.parse(UrlString.url+'picture/Getpicofmob?mid=$mid'));
+      if(res.statusCode == 200) {
         setState(() {
-          Iterable list = con.json.decode(res1.body);
-          zone = list.map((e) => DB_Zone.fromJson(e)).toList();
+          Iterable list = con.json.decode(res.body);
+          myshotlist = list.map((e) => DB_ArielShot.fromJson(e)).toList();
+          //print(myshotlist.length.toString());
         });
 
-       for(int j = 0; j<zone.length; j++) {
-         MyMarker(zone[j].zlong, zone[j].zlat, zone[j].zid, CustomMarker.redflag);
-         MyCircle(zone[j].zlong, zone[j].zlat, zone[j].km);
-       }
+        if(myshotlist.length > a) {
+          //we got new pic
+          MyToast.showToast('got new length:${myshotlist.length}');
+          //first we convert previous marker to black marker from blue
+          // Marker _marker = marker.firstWhere((marker) => marker.markerId.value == (myshotlist.length-1).toString() ,orElse: () => null);
+          // setState(() {
+          //   marker.remove(_marker);
+          // });
+          onAddMarkerButtonPressed(
+              myshotlist[myshotlist.length-2].platitude,
+              myshotlist[myshotlist.length-2].plongitude,
+              myshotlist[myshotlist.length-2].pdatetime,
+              myshotlist[myshotlist.length-2].speed,
+              myshotlist[myshotlist.length-2].picno.toString(),
+              myshotlist[myshotlist.length-2].pmobquantity.toString(),
+              blackmarker
+          );
+          //now make marker of new pic
+          onAddMarkerButtonPressed(
+              myshotlist[myshotlist.length-1].platitude,
+              myshotlist[myshotlist.length-1].plongitude,
+              myshotlist[myshotlist.length-1].pdatetime,
+              myshotlist[myshotlist.length-1].speed,
+              myshotlist[myshotlist.length-1].picno.toString(),
+              myshotlist[myshotlist.length-1].pmobquantity.toString(),
+              currentmarker
+          );//i==0? startingmarker :
+
+          setState(() {
+            position = CameraPosition(
+                bearing: 192.833,
+                target: LatLng(myshotlist[myshotlist.length-1].platitude, myshotlist[myshotlist.length-2].plongitude),
+                tilt: 59.440,
+                zoom: 11.0);
+            goToPositone1();
+          });
+
+          //now update the zones according to new current location
+          //forst remove the markers
+          for(int j=0; j<zone.length; j++){
+
+     //now get the zones nearst to new current location
+            double lat = myshotlist[myshotlist.length-1].platitude, long = myshotlist[myshotlist.length-1].plongitude;
+            var dist = distance(lat, long, zone[j].zlat, zone[j].zlong, "K");
+            var speed = myshotlist[myshotlist.length-1].speed.split(' ');
+            var time = (double.parse(dist)-zone[j].km.toDouble()) <= 0
+                ? 0 :
+            (double.parse(dist)-zone[j].km.toDouble())/double.parse(speed[0]);
+
+            //now check is this zone is already isshow then we will updates its information
+            double previous_time=0;
+            if(zone[j].isshow){
+              if(time>zone[j].time){
+                setState(() {
+                  zone[j].distancekm = dist;
+                  previous_time = zone[j].time;
+                  zone[j].time=time;
+                  zone[j].status = "Away";
+                });
+              }
+              else{
+                setState(() {
+                  zone[j].distancekm = dist;
+                  previous_time = zone[j].time;
+                  zone[j].time=time;
+                  zone[j].status = "Toward";
+                });
+              }
+
+              // Marker _marker = marker.firstWhere((c) => c.markerId.value == (zone[j].zid+100).toString() ,orElse: () => null);
+              // Circle _circle = circles.firstWhere((c) => c.circleId.value == (zone[j].zid+100).toString() ,orElse: () => null);
+              // setState(() {
+              //   marker.remove(_marker);
+              //   circles.remove(_circle);
+              // });
+            }
+            //if zone is near to mob
+            else if(double.parse(dist) <= zone[j].km+3 ){
+              String previous_status = "Toward";
+
+              setState(() {
+                zone[j].isshow = true;
+                zone[j].time = time;
+                zone[j].status = previous_status;
+              });
+            }
+
+            if(zone[j].isshow){
+              MyMarker(zone[j].zlong, zone[j].zlat, (zone[j].zid+100), CustomMarker.redflag, '${zone[j].distancekm} minutes', zone[j].status);
+              MyCircle(zone[j].zlong, zone[j].zlat, zone[j].km, (zone[j].zid+100).toString());
+            }
+
+          }
+        }
       }
     }
   }
 
+  var  bytes;
   String selectedEmp;
   double lat, long;
   TextEditingController txt_con = TextEditingController(text: '');
@@ -90,7 +383,7 @@ class _MobDetailState extends State<MobDetail> {
   LatLng lastMapPosition = center;
   MapType currentMapType = MapType.normal;
 
-  static final CameraPosition position = CameraPosition(
+  static CameraPosition position = CameraPosition(
       bearing: 192.833,
       target: LatLng(33.6844, 73.0479),
       tilt: 59.440,
@@ -128,37 +421,24 @@ class _MobDetailState extends State<MobDetail> {
     );
   }
 
-  onAddMarkerButtonPressed(double lat, double long, DateTime time, String speed, String id, BitmapDescriptor mark) {
-    setState(() {
-          marker.add(Marker(
-              markerId: MarkerId(id),
-              position: LatLng(lat,long),
-              infoWindow: InfoWindow(
-                title: '{$time}',
-                snippet: '${speed}',
-              ),
-              icon: mark
-          ));
-    });
-  }
-
-  MyMarker(double long, double lat,int id, BitmapDescriptor mark) {
+  MyMarker(double long, double lat,int id, BitmapDescriptor mark, var speed,String Status) {
     setState(() {
       marker.add(Marker(
           markerId: MarkerId(id.toString()),
           position: LatLng(lat, long),
           infoWindow: InfoWindow(
-            title: '',
+            title: Status.toString(),
+            //snippet: Status
           ),
           icon: mark == null?BitmapDescriptor.defaultMarker:mark
       ));
     });
   }
 
-  MyCircle(double long, double lat, int km) {
+  MyCircle(double long, double lat, int km, String id) {
     setState(() {
       circles.add(Circle(
-          circleId: CircleId('presses circle'),
+          circleId: CircleId(id),
           fillColor: Colors.red.withOpacity(0.3),
           center: LatLng(lat, long),
           visible: true,
@@ -201,6 +481,17 @@ class _MobDetailState extends State<MobDetail> {
             ),
           ),
         ),
+        Padding(
+          padding: EdgeInsets.all(16),
+          child: Align(
+            alignment: Alignment.topCenter,
+            child: Container(
+              height: 200,
+              width: 300,
+              child: bytes==null?Text("No Image"):Image(image: MemoryImage(bytes)),
+            )
+          ),
+        ),
       ],
     );
   }
@@ -215,15 +506,15 @@ class _MobDetailState extends State<MobDetail> {
       }
     super.initState();
     BitmapDescriptor.fromAssetImage(
-        ImageConfiguration(devicePixelRatio: 1),
+        ImageConfiguration(devicePixelRatio: 2),
         'asset/icons/radar.png').then((onValue) {
       setState(() {
         currentmarker=onValue;
       });
     });
     BitmapDescriptor.fromAssetImage(
-        ImageConfiguration(devicePixelRatio: 5),
-        'asset/icons/marker1.png').then((onValue) {
+        ImageConfiguration(devicePixelRatio: 2),
+        'asset/icons/startlocation.png').then((onValue) {
       setState(() {
         startingmarker = onValue;
       });
@@ -231,7 +522,7 @@ class _MobDetailState extends State<MobDetail> {
 
     //BitmapDescriptor.f
     BitmapDescriptor.fromAssetImage(
-        ImageConfiguration(devicePixelRatio: 1),
+        ImageConfiguration(devicePixelRatio: 2),
         'asset/icons/black.png').then((onValue) {
       setState(() {
         blackmarker = onValue;
@@ -240,13 +531,14 @@ class _MobDetailState extends State<MobDetail> {
 
     BitmapDescriptor.fromAssetImage(
       ImageConfiguration(devicePixelRatio: 5),
-      'asset/icons/marker2.png').then((value) {
+      'asset/icons/redflag.png').then((value) {
         setState(() {
           redflag = value;
         });
     });
-    getshots();
-
+    Future.delayed(Duration(seconds: 1), () {
+      getshots();
+    });
   }
 
   @override
@@ -255,6 +547,31 @@ class _MobDetailState extends State<MobDetail> {
       appBar: AppBar(
         centerTitle: true,
         title: Text('${selectedmob.mname}'),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.refresh, color: Colors.white,),
+            onPressed: (){
+
+              for(int j = 0; j<zone.length; j++)
+              {
+                Marker _marker = marker.firstWhere((c) => c.markerId.value == (zone[j].zid+100).toString() ,orElse: () => null);
+                Circle _circle = circles.firstWhere((c) => c.circleId.value ==(zone[j].zid+100).toString() ,orElse: () => null);
+                setState(() {
+                  marker.remove(_marker);
+                  circles.remove(_circle);
+                });
+              }
+              for(int i = 0; i<myshotlist.length; i++)
+              {
+                Marker _marker = marker.firstWhere((marker) => marker.markerId.value == myshotlist[i].picno.toString() ,orElse: () => null);
+                setState(() {
+                  marker.remove(_marker);
+                });
+              }
+              getshots();
+            },
+          )
+        ],
         leading: IconButton(
           icon: Icon(Icons.arrow_back_sharp, color: Colors.white,),
           onPressed: (){

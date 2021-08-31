@@ -10,19 +10,17 @@ import 'dart:convert' as con;
 import 'package:mob_admin_panel/components/toast.dart';
 import 'package:mob_admin_panel/components/urlstring.dart';
 import 'package:mob_admin_panel/pageviews/mob/activemob.dart';
-
 class AddMob extends StatefulWidget {
   @override
   _AddMobState createState() => _AddMobState();
 }
 
 class _AddMobState extends State<AddMob> {
-
   List<DB_Devices> deviceslist ;
   String selectdevice;
   int selectedindex;
   TextEditingController title_con = TextEditingController();
-
+  TextEditingController threash_con = TextEditingController();
   getAvailableDevices() async{
     var response = await http.get(Uri.parse(UrlString.url+'Devices/getavailable'));
     if(response.statusCode == 200) {
@@ -50,7 +48,6 @@ class _AddMobState extends State<AddMob> {
       Navigator.pop(context);
     }
   }
-
   postMob() async {
 
     for(int i=0; i<deviceslist.length; i++){
@@ -68,6 +65,7 @@ class _AddMobState extends State<AddMob> {
         },
         body: con.jsonEncode(<String, dynamic>{
           "mname": title_con.text,
+          "threshhold":threash_con.text,
           "ms_time": null,
           "me_time": null,
           "mdesc": null,
@@ -76,7 +74,6 @@ class _AddMobState extends State<AddMob> {
         })
     );
   }
-
   Widget addMob(){
     return deviceslist == null?
         Center(child: CircularProgressIndicator(),)
@@ -111,6 +108,38 @@ class _AddMobState extends State<AddMob> {
                 ),
                 decoration: InputDecoration(
                   labelText: "Mob title",
+                  labelStyle: TextStyle(
+                    color: Colors.white,//Color.fromRGBO(66, 165, 255, 1),
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  contentPadding: EdgeInsets.symmetric(horizontal: 42,vertical: 20),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(30),
+                    borderSide: BorderSide(
+                        color: Colors.white,//Color.fromRGBO(66, 165, 255, 1),
+                        width: 2
+                    ),
+                  ),
+                  focusedBorder:  OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(30),
+                    borderSide: BorderSide(color: Colors.white, width: 2),
+                  ),
+                  prefixIcon: Icon(
+                    Icons.people_alt_outlined , color: Colors.white,
+                    //size: 12,
+                  ),
+                ),
+
+              ),
+              SizedBox(height: 20,),
+              TextField(
+                controller: threash_con,
+                style: TextStyle(
+                  color: Colors.white,//Color.fromRGBO(66, 165, 255, 1),
+                ),
+                decoration: InputDecoration(
+                  labelText: "Mob Theash hold",
                   labelStyle: TextStyle(
                     color: Colors.white,//Color.fromRGBO(66, 165, 255, 1),
                     fontSize: 12,

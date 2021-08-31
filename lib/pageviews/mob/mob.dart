@@ -20,8 +20,63 @@ class Mob extends StatefulWidget {
 
 class _MobState extends State<Mob> with SingleTickerProviderStateMixin
 {
-
   TabController _listcontroller;
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      bottomNavigationBar: CurvedBar(),
+      appBar: AppBar(
+        leading: Icon(Icons.add, color: Colors.transparent,),
+        title: Text('MOb'), centerTitle: true,
+        actions: [
+          IconButton(
+            icon: Icon(Icons.refresh, color: Colors.white,),
+            iconSize: 20,
+            onPressed: (){
+              gethistorymob();
+              getmob();
+            },
+          ),
+        ],
+        bottom: new TabBar(
+          controller: _listcontroller,
+          indicatorColor: Colors.white,
+          tabs: [
+            Tab(
+              icon: FaIcon(FontAwesomeIcons.peopleArrows),
+              text: 'Mobs',
+            ),
+            Tab(
+              icon: FaIcon(FontAwesomeIcons.history),
+              text: 'History',
+            ),
+          ],
+        ),
+      ),
+      body: TabBarView(
+        controller: _listcontroller,
+        children: [
+          ActiveMob(),
+          HistoryMob()
+        ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          setState(() {
+            MyColors.myForeColor = Colors.blue;
+            MyColors.myBackColor = Colors.white;
+          });
+          Navigator.pushNamed(context, 'add_mob');
+        },
+        backgroundColor: Colors.blue,
+        child: Icon(
+          Icons.add,
+          color: Colors.white,
+          size: 30,
+        ),
+      ),
+    );
+  }
 
   @override
   void initState() {
@@ -85,60 +140,5 @@ class _MobState extends State<Mob> with SingleTickerProviderStateMixin
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      bottomNavigationBar: CurvedBar(),
-      appBar: AppBar(
-        leading: Icon(Icons.add, color: Colors.transparent,),
-        title: Text('MOb'), centerTitle: true,
-        actions: [
-          IconButton(
-            icon: Icon(Icons.refresh, color: Colors.white,),
-            iconSize: 20,
-            onPressed: (){
-              gethistorymob();
-              getmob();
-            },
-          ),
-        ],
-        bottom: new TabBar(
-          controller: _listcontroller,
-          indicatorColor: Colors.white,
-          tabs: [
-             Tab(
-              icon: FaIcon(FontAwesomeIcons.peopleArrows),
-              text: 'Mobs',
-            ),
-            Tab(
-              icon: FaIcon(FontAwesomeIcons.history),
-              text: 'History',
-            ),
-          ],
-        ),
-      ),
-      body: TabBarView(
-        controller: _listcontroller,
-        children: [
-           ActiveMob(),
-           HistoryMob()
-        ],
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          setState(() {
-            MyColors.myForeColor = Colors.blue;
-            MyColors.myBackColor = Colors.white;
-          });
-          Navigator.pushNamed(context, 'add_mob');
-        },
-        backgroundColor: Colors.blue,
-        child: Icon(
-          Icons.add,
-          color: Colors.white,
-          size: 30,
-        ),
-      ),
-    );
-  }
+
 }

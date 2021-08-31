@@ -190,8 +190,8 @@ class _LoginState extends State<Login> {
         e = DB_Emp.fromJson(con.jsonDecode(res.body));
       });
       if(e.edesg == "emp"){
-        DB_Zone z;
-        var res = await http.get(
+        List<DB_Zone> z;
+        var res1 = await http.get(
             Uri.parse(
                 UrlString.url+'Zones/getzone?eemail=${e.email}')
         );
@@ -200,8 +200,10 @@ class _LoginState extends State<Login> {
           setState(() {
             email_con.text= "";
           });
-            z = DB_Zone.fromJson(con.jsonDecode(res.body));
-            Navigator.push(context, MaterialPageRoute(builder: (context) => ShowZone(selectedzone:z,),));
+          Iterable list = con.json.decode(res1.body);
+          z = list.map((e) => DB_Zone.fromJson(e)).toList();
+          print(z);
+          Navigator.push(context, MaterialPageRoute(builder: (context) => ShowZone(selectedzone:z,),));
           }
       }
       else {
@@ -216,9 +218,7 @@ class _LoginState extends State<Login> {
           Navigator.pushNamed(context, 'home');
         }
 
-      // Navigator.push(context, MaterialPageRoute(
-      //     builder: (context) => HomeView(loginuser:LoginPerson.loginuser)
-      // ));
+
     }
     else {
       MyToast.showToast("SomeThing went wrong");
@@ -227,9 +227,7 @@ class _LoginState extends State<Login> {
 
   getempszone(String email) async {
 
-
-
- }
+  }
 
 }
 

@@ -21,20 +21,8 @@ class _SignupState extends State<Signup> {
   TextEditingController pass_con = TextEditingController();
   TextEditingController confirm_pass_con = TextEditingController();
   bool pass_same = false;
-  List<String> category = ["Admin", "Employee", "Security"];
+  List<String> category = ["Admin", "Employee"];
   String selectedvalue, sendValuetoDb;
-
-  // showToast(String msg){
-  //   Fluttertoast.showToast(
-  //     msg: msg,//"This is Center Short Toast",
-  //     toastLength: Toast.LENGTH_LONG,
-  //     gravity: ToastGravity.BOTTOM,
-  //     timeInSecForIosWeb: 3,
-  //     backgroundColor: MyColors.myBackColor,
-  //     textColor: MyColors.myForeColor,
-  //     fontSize: 16.0,
-  //   );
-  // }
 
   @override
   void initState() {
@@ -350,5 +338,4 @@ class _SignupState extends State<Signup> {
         })
     );
   }
-
 }

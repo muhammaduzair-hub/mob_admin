@@ -14,9 +14,7 @@ class EmpList extends StatefulWidget {
 }
 
 class _EmpListState extends State<EmpList> {
-
   List<DB_Emp> emplist ;
-
   Widget listview(){
     return ListView.builder(
       shrinkWrap: true,

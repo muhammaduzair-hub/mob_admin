@@ -1,10 +1,12 @@
 import 'dart:async';
+import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:mob_admin_panel/classes/db_arielshot.dart';
 import 'package:mob_admin_panel/classes/db_emp.dart';
 import 'package:mob_admin_panel/classes/db_mob.dart';
 import 'package:mob_admin_panel/classes/db_zone.dart';
+import 'package:mob_admin_panel/classes/db_zonedetail.dart';
 import 'package:mob_admin_panel/components/curvedbar.dart';
 import 'package:mob_admin_panel/components/custommarkers.dart';
 import 'package:mob_admin_panel/components/toast.dart';
@@ -17,19 +19,39 @@ import 'dart:convert' as con;
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 class ShowZone extends StatefulWidget {
-  final DB_Zone selectedzone;
+  final List<DB_Zone> selectedzone;
   const ShowZone({Key key, this.selectedzone}) : super(key: key);
 
   @override
-  _ShowZoneState createState() => _ShowZoneState(selectedzone);
+  _ShowZoneState createState() => _ShowZoneState();
 }
 
 class _ShowZoneState extends State<ShowZone> {
-  final DB_Zone selectedzone;
-  _ShowZoneState(this.selectedzone);
-
+  int index=-1;
+  //===============================================calculating distance between two points==================
+  String distance(double lat1, double lon1, double lat2, double lon2, String unit) {
+    double theta = lon1 - lon2;
+    double dist = sin(deg2rad(lat1)) * sin(deg2rad(lat2)) +
+        cos(deg2rad(lat1)) * cos(deg2rad(lat2)) * cos(deg2rad(theta));
+    dist = acos(dist);
+    dist = rad2deg(dist);
+    dist = dist * 60 * 1.1515;
+    if (unit == 'K') {
+      dist = dist * 1.609344;
+    } else if (unit == 'N') {
+      dist = dist * 0.8684;
+    }
+    return dist.toStringAsFixed(2);
+  }
+  double deg2rad(double deg) {
+    return (deg * pi / 180.0);
+  }
+  double rad2deg(double rad) {
+    return (rad * 180.0 / pi);
+  }
+//===============================================end calculating distance================================
   //===========================================MAP Work Start=======================================================
-  List<DB_ArielShot> mobinzone = null;
+  List<DB_ZoneDetail> mobinzone = null;
   double lat, long;
   //======custom markers==========
   BitmapDescriptor startingmarker;
@@ -45,7 +67,8 @@ class _ShowZoneState extends State<ShowZone> {
   LatLng lastMapPosition = center;
   MapType currentMapType = MapType.normal;
 
-  static final CameraPosition position = CameraPosition(
+
+  static CameraPosition position = CameraPosition(
       bearing: 192.833,
       target: LatLng(33.6844, 73.0479),
       tilt: 59.440,
@@ -83,37 +106,48 @@ class _ShowZoneState extends State<ShowZone> {
     );
   }
 
-  onAddMarkerButtonPressed(double lat, double long, DateTime time, int qty, String id,String mname, BitmapDescriptor mark) {
+  oncurrentLocation() {
+    setState(() {
+      position = CameraPosition(
+          bearing: 192.833,
+          target: LatLng(33.6844, 73.0479),
+          tilt: 59.440,
+          zoom: 11.0);
+    });
+    goToPositone1();
+  }
+
+  onAddMarkerButtonPressed_on(double lat, double long, DateTime time, String speed,String id, String qty, BitmapDescriptor mark) {
+    setState(() {
+      marker.add(Marker(
+          markerId: MarkerId(id),
+          position: LatLng(lat,long),
+          infoWindow: InfoWindow(
+            title: 'Quantity:$qty',
+            snippet: 'Speed:${speed},Time:${time}',
+          ),
+          icon: mark
+      ));
+    });
+  }
+
+  MyMarker(double long, double lat, BitmapDescriptor mark, String id, var time) {
     setState(() {
       marker.add(Marker(
         markerId: MarkerId(id),
-        position: LatLng(lat,long),
-        infoWindow: InfoWindow(
-          title: mname,
-          snippet: '${qty}',
-        ),
-        icon: mark == null?BitmapDescriptor.defaultMarker:mark,
-      ));
-    });
-  }
-
-  MyMarker(double long, double lat, BitmapDescriptor mark) {
-    setState(() {
-      marker.add(Marker(
-        markerId: MarkerId('Presses Marker'),
         position: LatLng(lat, long),
         infoWindow: InfoWindow(
-          title: '',
+          title: time!=null?time.toString()+" Minutes":'',
         ),
         icon: mark == null?BitmapDescriptor.defaultMarker:mark,
       ));
     });
   }
 
-  MyCircle(double long, double lat, double rad) {
+  MyCircle(double long, double lat, double rad, String id) {
     setState(() {
       circles.add(Circle(
-          circleId: CircleId('presses circle'),
+          circleId: CircleId(id),
           fillColor: Colors.red.withOpacity(0.3),
           center: LatLng(lat, long),
           visible: true,
@@ -128,7 +162,6 @@ class _ShowZoneState extends State<ShowZone> {
       //overflow: Overflow.visible,
       children: [
         GoogleMap(
-
           onMapCreated: onMapCreated,
           initialCameraPosition: CameraPosition(target: center, zoom: 11.0),
           mapType: currentMapType,
@@ -152,7 +185,7 @@ class _ShowZoneState extends State<ShowZone> {
                 SizedBox(
                   height: 16,
                 ),
-                button(goToPositone1, Icons.location_searching),
+                button(oncurrentLocation, Icons.location_searching),
               ],
             ),
           ),
@@ -162,46 +195,180 @@ class _ShowZoneState extends State<ShowZone> {
   }
 
   getzonedetail() async{
-    MyMarker(selectedzone.zlong, selectedzone.zlat, CustomMarker.redflag);
-    MyCircle(selectedzone.zlong, selectedzone.zlat, selectedzone.km.toDouble());
-    if(selectedzone.flag == 0){
+    await Future.delayed(Duration(seconds: 5), () {});
+    for(int j = 0; j<widget.selectedzone.length; j++) {
+        var time = null;
+        await Future.delayed(Duration(seconds: 2), () {});
+        MyMarker(widget.selectedzone[j].zlong, widget.selectedzone[j].zlat, CustomMarker.redflag, (widget.selectedzone[j].zid+100).toString(), time);
+        MyCircle(widget.selectedzone[j].zlong, widget.selectedzone[j].zlat, widget.selectedzone[j].km.toDouble(), (widget.selectedzone[j].zid+100).toString());
+
+        setState(() {
+          position = CameraPosition(
+              bearing: 192.833,
+              target: LatLng(widget.selectedzone[j].zlat, widget.selectedzone[j].zlong),
+              tilt: 59.440,
+              zoom: 12.0);
+          goToPositone1();
+        });
+      }
+    setState(() {
+      index=widget.selectedzone.length-1;
+    });
+  }
+
+  showmobsofzone(int index) async{
+    //first remove all previous mob
+
+    if(widget.selectedzone[index].flag == 0){
+      MyToast.showToast("This is inactive zone");
     }
-    else {
-      int zid= selectedzone.zid;
-      var res = await http.get(Uri.parse(UrlString.url+'picture/Zonedetail?zid=$zid'));
+    else{
+      int zid= widget.selectedzone[index].zid;
+      MyToast.showToast('$zid');
+      var res = await http.get(Uri.parse(UrlString.url+'ZoneDetail/viewzone?id=${zid}'));
       if(res.statusCode == 200){
         Iterable list = con.json.decode(res.body);
-        mobinzone = list.map((e) => DB_ArielShot.fromJson(e)).toList();
+        mobinzone = list.map((e) => DB_ZoneDetail.fromJson(e)).toList();
 
         for(int i = 0; i<mobinzone.length; i++){
-
+          await Future.delayed(Duration(seconds: 2), () {});
           int mmid = mobinzone[i].mid;
           var name =await http.get(Uri.parse(UrlString.url+'Mob/getname?mid=$mmid'));
           if(name.statusCode == 200) {
             DB_Mob mname = DB_Mob.fromJson(con.jsonDecode(name.body));
+            mobinzone[i].mobname = mname.mname;
 
             onAddMarkerButtonPressed(
-              mobinzone[i].platitude,
-              mobinzone[i].plongitude,
-              mobinzone[i].pdatetime,
-              mobinzone[i].pmobquantity,
-              mobinzone[i].pname,
+              mobinzone[i].mlat,
+              mobinzone[i].mlong,
+              mobinzone[i].reachtime.toString(),
+              mobinzone[i].mqty,
+              mobinzone[i].mid.toString(),
               mname.mname,
               currentmarker ,
+              mobinzone[i].mstatus,
             );
+
+            setState(() {
+              position = CameraPosition(
+                  bearing: 192.833,
+                  target: LatLng(mobinzone[i].mlat, mobinzone[i].mlong),
+                  tilt: 59.440,
+                  zoom: 12.0);
+              goToPositone1();
+            });
           }
         }
       }
+      else MyToast.showToast(res.body);
     }
+  }
+
+  onAddMarkerButtonPressed(double lat, double long, String time, int qty, String id,String mname, BitmapDescriptor mark, String speed){
+    setState(() {
+      marker.add(Marker(
+          markerId: MarkerId(id),
+          position: LatLng(lat,long),
+          infoWindow: InfoWindow(
+            title: '${mname}, ',
+            snippet: 'Status:${speed},ReachTime:${time} min',
+          ),
+          icon: mark,
+          onTap: () async{
+            await Future.delayed(Duration(seconds: 2), () async {});
+            showDialog(
+              context: context,
+              builder: (_)=> AlertDialog(
+                title: Text("${mname}", style: TextStyle(fontWeight: FontWeight.bold,fontSize: 20, color: Colors.white),),
+                content: Text("Want to see movement?", style: TextStyle(fontSize: 16, color: Colors.white)),
+                backgroundColor: Colors.blue,
+                elevation: 2.0,
+                buttonPadding: EdgeInsets.symmetric(horizontal: 15),
+                //shape: CircleBorder(),
+                actions: [
+                  ElevatedButton(
+                    child: Text('Yes', style: TextStyle(fontSize: 16, color: Colors.white)),
+                    onPressed: () async{
+                      Navigator.of(context).pop();
+                      for(int i = 0;i<mobinzone.length;i++){
+                        Marker _marker = marker.firstWhere((marker) => marker.markerId.value == mobinzone[i].mid.toString() ,orElse: () => null);
+                        marker.remove(_marker);
+                      }
+                      var res = await http.get(Uri.parse(UrlString.url+'picture/Getpicofmob?mid=${id}'));
+                      if(res.statusCode == 200) {
+                        List<DB_ArielShot> myshotlist;
+                        setState(() {
+                          Iterable list = con.json.decode(res.body);
+                          myshotlist = list.map((e) => DB_ArielShot.fromJson(e)).toList();
+                          //print(myshotlist.length.toString());
+                        });
+                        int i = 0;
+                        for(i ; i<myshotlist.length; i++) {
+                          await Future.delayed(Duration(seconds: 3), () async {
+
+                            onAddMarkerButtonPressed_on(
+                                myshotlist[i].platitude,
+                                myshotlist[i].plongitude,
+                                myshotlist[i].pdatetime,
+                                myshotlist[i].speed,
+                                myshotlist[i].picno.toString(),
+                                myshotlist[i].pmobquantity.toString(),
+                                i==myshotlist.length-1?currentmarker: blackmarker
+                            );
+
+                            setState(() {
+                              position = CameraPosition(
+                                  bearing: 192.833,
+                                  target: LatLng(myshotlist[i].platitude, myshotlist[i].plongitude),
+                                  tilt: 59.440,
+                                  zoom: 11.0);
+                              goToPositone1();
+                            });
+
+                          });
+                        }
+                        await Future.delayed(Duration(seconds: 2), () async {
+                          for(int i = 0;i<myshotlist.length;i++){
+                            Marker _marker = marker.firstWhere((marker) => marker.markerId.value == myshotlist[i].picno.toString() ,orElse: () => null);
+                            marker.remove(_marker);
+                          }
+                          for(int i = 0; i<mobinzone.length; i++){
+                            onAddMarkerButtonPressed(
+                              mobinzone[i].mlat,
+                              mobinzone[i].mlong,
+                              mobinzone[i].reachtime.toString(),
+                              mobinzone[i].mqty,
+                              mobinzone[i].mid.toString(),
+                              mobinzone[i].mobname,
+                              currentmarker ,
+                              mobinzone[i].mstatus,
+                            );
+                          }
+                        });
+                      }
+                    },
+                  ),
+                  ElevatedButton(
+                    child: Text('No', style: TextStyle(fontSize: 16, color: Colors.white)),
+                    onPressed: (){
+                      Navigator.of(context).pop();
+                    },
+                  ),
+                ],
+              ),
+            );
+
+          }
+      ));
+      //Marker _marker = marker.firstWhere((marker) => marker.markerId.value == (id).toString() ,orElse: () => null);
+      //_marker!=null?MyToast.showToast("OK"):MyToast.showToast("OK");
+    });
   }
 
   @override
   void initState() {
+    print(widget.selectedzone.toList().toString());
     // TODO: implement initState
-    if(widget.selectedzone.flag == 0) {
-      MyToast.showToast("This Mob is not start yet!");
-      Navigator.pop(context);
-    }
     super.initState();
     BitmapDescriptor.fromAssetImage(
         ImageConfiguration(devicePixelRatio: 1),
@@ -239,12 +406,13 @@ class _ShowZoneState extends State<ShowZone> {
 
   }
 
+
   @override
   Widget build(BuildContext context) {
 
     String zonename;
     setState(() {
-      zonename = selectedzone.zname;
+      zonename = index==-1?"":widget.selectedzone[index].zname;
     });
 
     return Scaffold(
@@ -252,10 +420,73 @@ class _ShowZoneState extends State<ShowZone> {
         centerTitle: true,
         title: Text("$zonename Zone Detail"),
         leading: IconButton(
-          icon: Icon(Icons.arrow_back_rounded, color: Colors.white,),
+          icon: Icon(Icons.logout, color: Colors.white,),
           onPressed: ()=>Navigator.pop(context),
           color: Colors.white,
         ),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.arrow_back_ios_rounded, color: Colors.white,),
+            onPressed: (){
+              setState(() {
+                if(index==widget.selectedzone.length)
+                  index=0;
+                else
+                  index = index+1;
+                print('$index');
+                position = CameraPosition(
+                    bearing: 192.833,
+                    target: LatLng(widget.selectedzone[index].zlat, widget.selectedzone[index].zlong),
+                    tilt: 59.440,
+                    zoom: 12.0);
+              });
+              goToPositone1();
+              if(mobinzone!=null) {
+                for (int ii = 0; ii < mobinzone.length; ii++) {
+                  Marker _marker = marker.firstWhere((marker) =>
+                  marker.markerId.value == mobinzone[ii].mid.toString(),
+                      orElse: () => null);
+                  setState(() {
+                    marker.remove(_marker);
+                  });
+                }
+              }
+              showmobsofzone(index);
+            },
+            color: Colors.white,
+          ),
+          IconButton(
+            icon: Icon(Icons.arrow_forward_ios_rounded, color: Colors.white,),
+            onPressed: (){
+              setState(() {
+                if(index==0)
+                  index=widget.selectedzone.length-1;
+                else
+                  index = index-1;
+
+                print('$index');
+                position = CameraPosition(
+                    bearing: 192.833,
+                    target: LatLng(widget.selectedzone[index].zlat, widget.selectedzone[index].zlong),
+                    tilt: 59.440,
+                    zoom: 12.0);
+              });
+              goToPositone1();
+              if(mobinzone!=null) {
+                for (int ii = 0; ii < mobinzone.length; ii++) {
+                  Marker _marker = marker.firstWhere((marker) =>
+                  marker.markerId.value == mobinzone[ii].mid.toString(),
+                      orElse: () => null);
+                  setState(() {
+                    marker.remove(_marker);
+                  });
+                }
+              }
+              showmobsofzone(index);
+            },
+            color: Colors.white,
+          ),
+        ],
       ),
       body: map(),
     );

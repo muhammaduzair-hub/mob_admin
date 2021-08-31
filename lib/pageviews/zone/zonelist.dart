@@ -30,55 +30,28 @@ class _ZoneListState extends State<ZoneList> {
 
 
   bottomsheet(context, DB_Zone selectedzone){
+    double rating = sliderRating.toDouble();
     showModalBottomSheet(
         context: context,
         builder: (BuildContext){
           return Wrap(
             children: [
-
-// ====================================slider chuss==================
-//             Padding(
-//               padding: const EdgeInsets.fromLTRB(30, 20, 30, 20),
-//               child: Row(
-//                 children: [
-//                   Text("Sensitive Area:"+sliderRating.toString()),
-//                   IconButton(
-//                       icon: Icon(Icons.add),
-//                       onPressed: (){
-//                         setState(() {
-//                           if(sliderRating<5)
-//                             sliderRating += 1;
-//                         });
-//                       }
-//                   ),
-//                   IconButton(
-//                       icon: Icon(Icons.minimize),
-//                       onPressed: (){
-//                         setState(() {
-//                           if(sliderRating>1)
-//                             sliderRating -= 1;
-//                         });
-//                       }
-//                   ),
-//                 ],
-//               ),
-//             ),
-//=====================================slider========================
               Padding(
                 padding: const EdgeInsets.fromLTRB(30, 20, 30, 20),
                 child: Slider(
-                    value: sliderRating==null?1:sliderRating.toDouble(),
+                    value: rating,//sliderRating==null?1:sliderRating.toDouble(),
                     onChanged: (n){
+                      rating =n.toDouble();
                       setState(() {
-                        sliderRating = n.toInt();
+                        //sliderRating = n.toInt();
                         //ifsliderratingchange = true;
-                        print("$sliderRating");
+                        print("$rating");
                       });
                     },
                   min: 1,
                   max: 5,
                   divisions: 4,
-                  label: "${sliderRating.toString()} km",
+                  label: "${rating.toString()} km",
                 ),
               ),
 //======================================dropdown=====================
@@ -125,7 +98,7 @@ class _ZoneListState extends State<ZoneList> {
                           child: Text("Update", style: TextStyle(color: Colors.white),),
                           onPressed: (){
                             setState(() {
-                              //sliderRating = selectedzone.km;
+                              sliderRating = rating.toInt();
                             });
                             updatezone(selectedzone);
                           },
@@ -288,6 +261,8 @@ class _ZoneListState extends State<ZoneList> {
         zonelist = list.map((e) => DB_Zone.fromJson(e)).toList();
       });
     }
+    else
+      print(response.body);
   }
 
   @override

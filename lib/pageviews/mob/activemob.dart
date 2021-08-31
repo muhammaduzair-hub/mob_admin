@@ -83,8 +83,6 @@ class _ActiveMobState extends State<ActiveMob> {
     getDevicesWithMob();
   }
 
-
-
   bottomsheet(context, DB_Mob selectedmob){
     showModalBottomSheet(
         context: context,
@@ -212,7 +210,7 @@ class _ActiveMobState extends State<ActiveMob> {
             onTap: () {
               bottomsheet(context, ActiveMob.moblist[i]);
             },
-            subtitle: getdevicenamefromlist(ActiveMob.moblist[i].did),
+            //subtitle: getdevicenamefromlist(ActiveMob.moblist[i].did),
           ),
           Divider(
             color: Colors.blue,

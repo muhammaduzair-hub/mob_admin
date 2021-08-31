@@ -14,10 +14,8 @@ class AddDevices extends StatefulWidget {
 }
 
 class _AddDevicesState extends State<AddDevices> {
-
   TextEditingController con = TextEditingController();
-
-  postMob() async {
+  postDevice() async {
     var res = await http.post(
         Uri.parse(UrlString.url+'Devices/postdevice'),
         headers: <String, String>{
@@ -28,7 +26,6 @@ class _AddDevicesState extends State<AddDevices> {
         })
     );
   }
-
   Widget addDevices(){
     return ListView(
       children: [
@@ -102,7 +99,7 @@ class _AddDevicesState extends State<AddDevices> {
                       onPrimary: Colors.white
                   ),
                   onPressed: (){
-                    postMob();
+                    postDevice();
                     setState(() {
                       MyColors.myForeColor = Colors.white;
                       MyColors.myBackColor = Colors.blue;

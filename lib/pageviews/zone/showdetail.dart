@@ -5,13 +5,11 @@ import 'package:mob_admin_panel/classes/db_arielshot.dart';
 import 'package:mob_admin_panel/classes/db_emp.dart';
 import 'package:mob_admin_panel/classes/db_mob.dart';
 import 'package:mob_admin_panel/classes/db_zone.dart';
+import 'package:mob_admin_panel/classes/db_zonedetail.dart';
 import 'package:mob_admin_panel/components/curvedbar.dart';
 import 'package:mob_admin_panel/components/custommarkers.dart';
 import 'package:mob_admin_panel/components/toast.dart';
 import 'package:mob_admin_panel/components/urlstring.dart';
-import 'package:mob_admin_panel/pageviews/home/loginperson.dart';
-import 'package:toggle_switch/toggle_switch.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert' as con;
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -29,7 +27,7 @@ class _ShowDetailState extends State<ShowDetail> {
   _ShowDetailState(this.selectedzone);
   
   //===========================================MAP Work Start=======================================================
-  List<DB_ArielShot> mobinzone = null;
+  List<DB_ZoneDetail> mobinzone = null;
   double lat, long;
   //======custom markers==========
   BitmapDescriptor startingmarker;
@@ -45,7 +43,7 @@ class _ShowDetailState extends State<ShowDetail> {
   LatLng lastMapPosition = center;
   MapType currentMapType = MapType.normal;
 
-  static final CameraPosition position = CameraPosition(
+  static CameraPosition position = CameraPosition(
       bearing: 192.833,
       target: LatLng(33.6844, 73.0479),
       tilt: 59.440,
@@ -83,16 +81,118 @@ class _ShowDetailState extends State<ShowDetail> {
     );
   }
 
-  onAddMarkerButtonPressed(double lat, double long, DateTime time, int qty, String id,String mname, BitmapDescriptor mark, String speed) {
+  onAddMarkerButtonPressed(double lat, double long, String time, int qty, String id,String mname, BitmapDescriptor mark, String speed){
     setState(() {
       marker.add(Marker(
           markerId: MarkerId(id),
           position: LatLng(lat,long),
           infoWindow: InfoWindow(
-            title: mname,
-            snippet: '${speed}',
+            title: '${mname}, ',
+            snippet: 'Status:${speed},ReachTime:${time} min',
           ),
-          icon: mark == null?BitmapDescriptor.defaultMarker:mark,
+          icon: mark,
+        onTap: () async{
+          await Future.delayed(Duration(seconds: 2), () async {});
+          showDialog(
+            context: context,
+            builder: (_)=> AlertDialog(
+              title: Text("Show Mob ${mname}", style: TextStyle(fontWeight: FontWeight.bold,fontSize: 20, color: Colors.white),),
+              content: Text("Want to see movement?", style: TextStyle(fontSize: 16, color: Colors.white)),
+              backgroundColor: Colors.blue,
+              elevation: 2.0,
+              buttonPadding: EdgeInsets.symmetric(horizontal: 15),
+              //shape: CircleBorder(),
+              actions: [
+                ElevatedButton(
+                  child: Text('Yes', style: TextStyle(fontSize: 16, color: Colors.white)),
+                  onPressed: () async{
+                    Navigator.of(context).pop();
+                    for(int i = 0;i<mobinzone.length;i++){
+                      Marker _marker = marker.firstWhere((marker) => marker.markerId.value == mobinzone[i].mid.toString() ,orElse: () => null);
+                      marker.remove(_marker);
+                    }
+                    var res = await http.get(Uri.parse(UrlString.url+'picture/Getpicofmob?mid=${id}'));
+                    if(res.statusCode == 200) {
+                      List<DB_ArielShot> myshotlist;
+                      setState(() {
+                        Iterable list = con.json.decode(res.body);
+                        myshotlist = list.map((e) => DB_ArielShot.fromJson(e)).toList();
+                        print(myshotlist.length.toString());
+                      });
+                      int i = 0;
+                      for(i ; i<myshotlist.length; i++) {
+                        await Future.delayed(Duration(seconds: 2), () async {
+
+                          onAddMarkerButtonPressed_on(
+                              myshotlist[i].platitude,
+                              myshotlist[i].plongitude,
+                              myshotlist[i].pdatetime,
+                              myshotlist[i].speed,
+                              myshotlist[i].picno.toString(),
+                              myshotlist[i].pmobquantity.toString(),
+                              i==myshotlist.length-1?currentmarker: blackmarker
+                          );
+
+                          setState(() {
+                            position = CameraPosition(
+                                bearing: 192.833,
+                                target: LatLng(myshotlist[i].platitude, myshotlist[i].plongitude),
+                                tilt: 59.440,
+                                zoom: 11.0);
+                            goToPositone1();
+                          });
+
+                        });
+                      }
+                      await Future.delayed(Duration(seconds: 2), () async {
+                        for(int i = 0;i<myshotlist.length;i++){
+                          Marker _marker = marker.firstWhere((marker) => marker.markerId.value == myshotlist[i].picno.toString() ,orElse: () => null);
+                          marker.remove(_marker);
+                        }
+                        for(int i = 0; i<mobinzone.length; i++){
+
+                          onAddMarkerButtonPressed(
+                            mobinzone[i].mlat,
+                            mobinzone[i].mlong,
+                            mobinzone[i].reachtime.toString(),
+                            mobinzone[i].mqty,
+                            mobinzone[i].mid.toString(),
+                            mobinzone[i].mobname,
+                            currentmarker ,
+                            mobinzone[i].mstatus,
+                          );
+                        }
+                      });
+                    }
+                  },
+                ),
+                ElevatedButton(
+                  child: Text('No', style: TextStyle(fontSize: 16, color: Colors.white)),
+                  onPressed: (){
+                    Navigator.of(context).pop();
+                  },
+                ),
+              ],
+            ),
+          );
+
+        }
+      ));
+       //Marker _marker = marker.firstWhere((marker) => marker.markerId.value == (id).toString() ,orElse: () => null);
+       //_marker!=null?MyToast.showToast("OK"):MyToast.showToast("OK");
+    });
+  }
+
+  onAddMarkerButtonPressed_on(double lat, double long, DateTime time, String speed,String id, String qty, BitmapDescriptor mark) {
+    setState(() {
+      marker.add(Marker(
+          markerId: MarkerId(id),
+          position: LatLng(lat,long),
+          infoWindow: InfoWindow(
+            title: 'Quantity:$qty',
+            snippet: 'Speed:${speed},Time:${time}',
+          ),
+          icon: mark
       ));
     });
   }
@@ -168,31 +268,31 @@ class _ShowDetailState extends State<ShowDetail> {
     }
     else {
       int zid= selectedzone.zid;
-      var res = await http.get(Uri.parse(UrlString.url+'picture/Zonedetail?zid=$zid'));
+      var res = await http.get(Uri.parse(UrlString.url+'ZoneDetail/viewzone?id=${zid}'));
       if(res.statusCode == 200){
         Iterable list = con.json.decode(res.body);
-        mobinzone = list.map((e) => DB_ArielShot.fromJson(e)).toList();
+        mobinzone = list.map((e) => DB_ZoneDetail.fromJson(e)).toList();
 
         for(int i = 0; i<mobinzone.length; i++){
-
           int mmid = mobinzone[i].mid;
           var name =await http.get(Uri.parse(UrlString.url+'Mob/getname?mid=$mmid'));
           if(name.statusCode == 200) {
             DB_Mob mname = DB_Mob.fromJson(con.jsonDecode(name.body));
-
+            mobinzone[i].mobname = mname.mname;
             onAddMarkerButtonPressed(
-              mobinzone[i].platitude,
-              mobinzone[i].plongitude,
-              mobinzone[i].pdatetime,
-              mobinzone[i].pmobquantity,
-              mobinzone[i].pname,
+              mobinzone[i].mlat,
+              mobinzone[i].mlong,
+              mobinzone[i].reachtime.toString(),
+              mobinzone[i].mqty,
+              mobinzone[i].mid.toString(),
               mname.mname,
               currentmarker ,
-              mobinzone[i].speed
+              mobinzone[i].mstatus,
             );
           }
         }
       }
+      else MyToast.showToast(res.body);
     }
   }
 
@@ -259,7 +359,7 @@ class _ShowDetailState extends State<ShowDetail> {
         ),
       ),
       body: map(),
-      bottomNavigationBar: LoginPerson.loginuser == null?CurvedBar():null,
+      bottomNavigationBar:CurvedBar(),
     );
   }
 }

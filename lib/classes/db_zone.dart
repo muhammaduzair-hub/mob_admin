@@ -7,7 +7,13 @@ class DB_Zone{
   final int km;
   final String emp;
 
-  DB_Zone({this.km,this.zid, this.zlat, this.zlong, this.zname, this.flag, this.emp});
+  //these 4 for demo
+  String status;
+  String distancekm;
+  double time;
+  bool isshow;
+
+  DB_Zone({this.km,this.zid, this.zlat, this.zlong, this.zname, this.flag, this.emp, this.status, this.time, this.isshow=false});
 
   factory DB_Zone.fromJson(Map<String, dynamic> json)
   {
